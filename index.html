@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Practical-machine-learning : ">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Practical-machine-learning</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/libraguysgp/Practical-Machine-Learning">View on GitHub</a>
+
+          <h1 id="project_title">Practical-machine-learning</h1>
+          <h2 id="project_tagline"></h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/libraguysgp/Practical-Machine-Learning/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/libraguysgp/Practical-Machine-Learning/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h2>
+<a id="introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
+
+<p>Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it.  </p>
+
+<p>In this project, we will use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants to predict the manner in which they did the exercise.  </p>
+
+<h2>
+<a id="data-preprocessing" class="anchor" href="#data-preprocessing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data Preprocessing</h2>
+
+<div class="highlight highlight-r,"><pre>library(<span class="pl-smi">caret</span>)
+library(<span class="pl-smi">rpart</span>)
+library(<span class="pl-smi">rpart.plot</span>)
+library(<span class="pl-smi">randomForest</span>)
+library(<span class="pl-smi">corrplot</span>)</pre></div>
+
+<h3>
+<a id="download-the-data" class="anchor" href="#download-the-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Download the Data</h3>
+
+<div class="highlight highlight-r,"><pre><span class="pl-smi">trainUrl</span> <span class="pl-k">&lt;-</span><span class="pl-s"><span class="pl-pds">"</span>https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv<span class="pl-pds">"</span></span>
+<span class="pl-smi">testUrl</span> <span class="pl-k">&lt;-</span> <span class="pl-s"><span class="pl-pds">"</span>https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv<span class="pl-pds">"</span></span>
+<span class="pl-smi">trainFile</span> <span class="pl-k">&lt;-</span> <span class="pl-s"><span class="pl-pds">"</span>./data/pml-training.csv<span class="pl-pds">"</span></span>
+<span class="pl-smi">testFile</span>  <span class="pl-k">&lt;-</span> <span class="pl-s"><span class="pl-pds">"</span>./data/pml-testing.csv<span class="pl-pds">"</span></span>
+<span class="pl-k">if</span> (<span class="pl-k">!</span>file.exists(<span class="pl-s"><span class="pl-pds">"</span>./data<span class="pl-pds">"</span></span>)) {
+  dir.create(<span class="pl-s"><span class="pl-pds">"</span>./data<span class="pl-pds">"</span></span>)
+}
+<span class="pl-k">if</span> (<span class="pl-k">!</span>file.exists(<span class="pl-smi">trainFile</span>)) {
+  download.file(<span class="pl-smi">trainUrl</span>, <span class="pl-v">destfile</span><span class="pl-k">=</span><span class="pl-smi">trainFile</span>)
+}
+<span class="pl-k">if</span> (<span class="pl-k">!</span>file.exists(<span class="pl-smi">testFile</span>)) {
+  download.file(<span class="pl-smi">testUrl</span>, <span class="pl-v">destfile</span><span class="pl-k">=</span><span class="pl-smi">testFile</span>)
+}</pre></div>
+
+<h3>
+<a id="read-the-data" class="anchor" href="#read-the-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Read the Data</h3>
+
+<p>After downloading the data from the data source, we can read the two csv files into two data frames.  </p>
+
+<div class="highlight highlight-r,"><pre><span class="pl-smi">trainRaw</span> <span class="pl-k">&lt;-</span> read.csv(<span class="pl-s"><span class="pl-pds">"</span>./data/pml-training.csv<span class="pl-pds">"</span></span>)
+<span class="pl-smi">testRaw</span> <span class="pl-k">&lt;-</span> read.csv(<span class="pl-s"><span class="pl-pds">"</span>./data/pml-testing.csv<span class="pl-pds">"</span></span>)
+dim(<span class="pl-smi">trainRaw</span>)
+dim(<span class="pl-smi">testRaw</span>)</pre></div>
+
+<p>The training data set contains 19622 observations and 160 variables, while the testing data set contains 20 observations and 160 variables. The "classe" variable in the training set is the outcome to predict. </p>
+
+<h3>
+<a id="clean-the-data" class="anchor" href="#clean-the-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Clean the data</h3>
+
+<p>In this step, we will clean the data and get rid of observations with missing values as well as some meaningless variables.</p>
+
+<div class="highlight highlight-r,"><pre>sum(complete.cases(<span class="pl-smi">trainRaw</span>))</pre></div>
+
+<p>First, we remove columns that contain NA missing values.</p>
+
+<div class="highlight highlight-r,"><pre><span class="pl-smi">trainRaw</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">trainRaw</span>[, colSums(is.na(<span class="pl-smi">trainRaw</span>)) <span class="pl-k">==</span> <span class="pl-c1">0</span>] 
+<span class="pl-smi">testRaw</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">testRaw</span>[, colSums(is.na(<span class="pl-smi">testRaw</span>)) <span class="pl-k">==</span> <span class="pl-c1">0</span>] </pre></div>
+
+<p>Next, we get rid of some columns that do not contribute much to the accelerometer measurements.</p>
+
+<div class="highlight highlight-r,"><pre><span class="pl-smi">classe</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">trainRaw</span><span class="pl-k">$</span><span class="pl-smi">classe</span>
+<span class="pl-smi">trainRemove</span> <span class="pl-k">&lt;-</span> grepl(<span class="pl-s"><span class="pl-pds">"</span>^X|timestamp|window<span class="pl-pds">"</span></span>, names(<span class="pl-smi">trainRaw</span>))
+<span class="pl-smi">trainRaw</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">trainRaw</span>[, <span class="pl-k">!</span><span class="pl-smi">trainRemove</span>]
+<span class="pl-smi">trainCleaned</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">trainRaw</span>[, sapply(<span class="pl-smi">trainRaw</span>, <span class="pl-smi">is.numeric</span>)]
+<span class="pl-smi">trainCleaned</span><span class="pl-k">$</span><span class="pl-smi">classe</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">classe</span>
+<span class="pl-smi">testRemove</span> <span class="pl-k">&lt;-</span> grepl(<span class="pl-s"><span class="pl-pds">"</span>^X|timestamp|window<span class="pl-pds">"</span></span>, names(<span class="pl-smi">testRaw</span>))
+<span class="pl-smi">testRaw</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">testRaw</span>[, <span class="pl-k">!</span><span class="pl-smi">testRemove</span>]
+<span class="pl-smi">testCleaned</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">testRaw</span>[, sapply(<span class="pl-smi">testRaw</span>, <span class="pl-smi">is.numeric</span>)]</pre></div>
+
+<p>Now, the cleaned training data set contains 19622 observations and 53 variables, while the testing data set contains 20 observations and 53 variables. The "classe" variable is still in the cleaned training set.</p>
+
+<h3>
+<a id="slice-the-data" class="anchor" href="#slice-the-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Slice the data</h3>
+
+<p>Then, we can split the cleaned training set into a pure training data set (70%) and a validation data set (30%). We will use the validation data set to conduct cross validation in future steps.  </p>
+
+<div class="highlight highlight-r,"><pre>set.seed(<span class="pl-c1">22519</span>) <span class="pl-c"># For reproducibile purpose</span>
+<span class="pl-smi">inTrain</span> <span class="pl-k">&lt;-</span> createDataPartition(<span class="pl-smi">trainCleaned</span><span class="pl-k">$</span><span class="pl-smi">classe</span>, <span class="pl-v">p</span><span class="pl-k">=</span><span class="pl-c1">0.70</span>, <span class="pl-v">list</span><span class="pl-k">=</span><span class="pl-c1">F</span>)
+<span class="pl-smi">trainData</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">trainCleaned</span>[<span class="pl-smi">inTrain</span>, ]
+<span class="pl-smi">testData</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">trainCleaned</span>[<span class="pl-k">-</span><span class="pl-smi">inTrain</span>, ]</pre></div>
+
+<h2>
+<a id="data-modeling" class="anchor" href="#data-modeling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data Modeling</h2>
+
+<p>We fit a predictive model for activity recognition using <strong>Random Forest</strong> algorithm because it automatically selects important variables and is robust to correlated covariates &amp; outliers in general. We will use <strong>5-fold cross validation</strong> when applying the algorithm.  </p>
+
+<div class="highlight highlight-r,"><pre><span class="pl-smi">controlRf</span> <span class="pl-k">&lt;-</span> trainControl(<span class="pl-v">method</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">"</span>cv<span class="pl-pds">"</span></span>, <span class="pl-c1">5</span>)
+<span class="pl-smi">modelRf</span> <span class="pl-k">&lt;-</span> train(<span class="pl-smi">classe</span> <span class="pl-k">~</span> ., <span class="pl-v">data</span><span class="pl-k">=</span><span class="pl-smi">trainData</span>, <span class="pl-v">method</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">"</span>rf<span class="pl-pds">"</span></span>, <span class="pl-v">trControl</span><span class="pl-k">=</span><span class="pl-smi">controlRf</span>, <span class="pl-v">ntree</span><span class="pl-k">=</span><span class="pl-c1">250</span>)
+<span class="pl-smi">modelRf</span></pre></div>
+
+<p>Then, we estimate the performance of the model on the validation data set.  </p>
+
+<div class="highlight highlight-r,"><pre><span class="pl-smi">predictRf</span> <span class="pl-k">&lt;-</span> predict(<span class="pl-smi">modelRf</span>, <span class="pl-smi">testData</span>)
+confusionMatrix(<span class="pl-smi">testData</span><span class="pl-k">$</span><span class="pl-smi">classe</span>, <span class="pl-smi">predictRf</span>)</pre></div>
+
+<div class="highlight highlight-r,"><pre><span class="pl-smi">accuracy</span> <span class="pl-k">&lt;-</span> postResample(<span class="pl-smi">predictRf</span>, <span class="pl-smi">testData</span><span class="pl-k">$</span><span class="pl-smi">classe</span>)
+<span class="pl-smi">accuracy</span>
+<span class="pl-smi">oose</span> <span class="pl-k">&lt;-</span> <span class="pl-c1">1</span> <span class="pl-k">-</span> as.numeric(confusionMatrix(<span class="pl-smi">testData</span><span class="pl-k">$</span><span class="pl-smi">classe</span>, <span class="pl-smi">predictRf</span>)<span class="pl-k">$</span><span class="pl-smi">overall</span>[<span class="pl-c1">1</span>])
+<span class="pl-smi">oose</span></pre></div>
+
+<p>So, the estimated accuracy of the model is 99.42% and the estimated out-of-sample error is 0.58%.</p>
+
+<h2>
+<a id="predicting-for-test-data-set" class="anchor" href="#predicting-for-test-data-set" aria-hidden="true"><span class="octicon octicon-link"></span></a>Predicting for Test Data Set</h2>
+
+<p>Now, we apply the model to the original testing data set downloaded from the data source. We remove the <code>problem_id</code> column first.  </p>
+
+<div class="highlight highlight-r,"><pre><span class="pl-smi">result</span> <span class="pl-k">&lt;-</span> predict(<span class="pl-smi">modelRf</span>, <span class="pl-smi">testCleaned</span>[, <span class="pl-k">-</span>length(names(<span class="pl-smi">testCleaned</span>))])
+<span class="pl-smi">result</span></pre></div>
+
+<h2>
+<a id="appendix-figures" class="anchor" href="#appendix-figures" aria-hidden="true"><span class="octicon octicon-link"></span></a>Appendix: Figures</h2>
+
+<ol>
+<li>Correlation Matrix Visualization<br>
+</li>
+</ol>
+
+<div class="highlight highlight-r,"><pre><span class="pl-smi">corrPlot</span> <span class="pl-k">&lt;-</span> cor(<span class="pl-smi">trainData</span>[, <span class="pl-k">-</span>length(names(<span class="pl-smi">trainData</span>))])
+corrplot(<span class="pl-smi">corrPlot</span>, <span class="pl-v">method</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">"</span>color<span class="pl-pds">"</span></span>)</pre></div>
+
+<ol>
+<li>Decision Tree Visualization</li>
+</ol>
+
+<div class="highlight highlight-r,"><pre><span class="pl-smi">treeModel</span> <span class="pl-k">&lt;-</span> rpart(<span class="pl-smi">classe</span> <span class="pl-k">~</span> ., <span class="pl-v">data</span><span class="pl-k">=</span><span class="pl-smi">trainData</span>, <span class="pl-v">method</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">"</span>class<span class="pl-pds">"</span></span>)
+prp(<span class="pl-smi">treeModel</span>) <span class="pl-c"># fast plot</span></pre></div>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Practical-machine-learning maintained by <a href="https://github.com/libraguysgp">libraguysgp</a></p>
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
