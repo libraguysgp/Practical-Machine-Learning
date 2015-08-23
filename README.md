@@ -13,8 +13,8 @@ Weight Lifting Exercise Dataset).
 
 The goal of the project is to predict the manner in which they did the exercise. The "classe" variable in the training set. May use any of the other variables to predict with and create a report describing how the model built, how to use cross validation, the expected out of sample error is, and why made the choices. Will also use prediction model to predict 20 different test cases.  
 
-Link to HTML Report: [Click Here](http://libraguysgp.github.io/08-Practical-Machine-Learning/Practical_Machine_Learning_Prediction_Assignment.html)
+Link to HTML Report: [Click Here](http://libraguysgp.github.io/Practical-Machine-Learning/Practical_Machine_Learning_Prediction_Assignment.html)
 
-Link to the gh-pages: [Click Here](http://libraguysgp.github.io/08-Practical-Machine-Learning/)
+Link to the gh-pages: [Click Here](http://libraguysgp.github.io/Practical-Machine-Learning/)
 
-Link to the Github Repo: [Click Here](https://github.com/libraguysgp/08-Practical-Machine-Learning)
+Link to the Github Repo: [Click Here](https://github.com/libraguysgp/Practical-Machine-Learning)
